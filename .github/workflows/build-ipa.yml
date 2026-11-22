@@ -1,0 +1,30 @@
+name: Build IPA
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build unsigned app
+        run: |
+          xcodebuild -project AlarmClock.xcodeproj -scheme AlarmClock \
+            -sdk iphoneos -configuration Release \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            -derivedDataPath build/DD build
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R "build/DD/Build/Products/Release-iphoneos/AlarmClock.app" Payload/
+          zip -qry AlarmClock.ipa Payload
+          ls -la AlarmClock.ipa
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlarmClock-ipa
+          path: AlarmClock.ipa
